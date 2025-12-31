@@ -1,11 +1,12 @@
-# NetWorth
+# Worthie
 
-A modern, privacy-focused net worth tracking application built with Nuxt 4 and Nuxt UI. All data is stored locally in your browser using IndexedDB.
+A modern, privacy-focused net worth tracking desktop application built with [Tauri](https://tauri.app), Nuxt 4, and Nuxt UI. All data is stored locally on your device using IndexedDB.
 
-![NetWorth Dashboard](https://github.com/user-attachments/assets/b3866711-7f5a-44ba-9d1e-c1cea033ce68) <!-- Note: Replace with actual screenshot if available -->
+![Worthie Dashboard](https://github.com/user-attachments/assets/b3866711-7f5a-44ba-9d1e-c1cea033ce68) <!-- Note: Replace with actual screenshot if available -->
 
 ## Features
 
+- **🖥️ Desktop App**: Native desktop application powered by **Tauri** for macOS, Windows, and Linux.
 - **📊 Visual Insights**: Track your net worth over time with dynamic area charts.
 - **🏦 Account Management**: Manage multiple accounts with categories (TFSA, RRSP, Cash, Loan, etc.) and owner assignments.
 - **🔄 Balance Updates**: Easily update account balances and maintain a historical record of your financial progress.
@@ -14,6 +15,7 @@ A modern, privacy-focused net worth tracking application built with Nuxt 4 and N
 
 ## Tech Stack
 
+- **Desktop Runtime**: [Tauri 2](https://tauri.app)
 - **Framework**: [Nuxt 4](https://nuxt.com)
 - **UI Components**: [Nuxt UI v4](https://ui.nuxt.com)
 - **Database**: [Dexie.js](https://dexie.org) (IndexedDB)
@@ -27,6 +29,7 @@ A modern, privacy-focused net worth tracking application built with Nuxt 4 and N
 
 - [Node.js](https://nodejs.org) (Version 20 or higher recommended)
 - [pnpm](https://pnpm.io)
+- [Rust](https://www.rust-lang.org/tools/install) (required for Tauri)
 
 ### Installation
 
@@ -38,22 +41,24 @@ A modern, privacy-focused net worth tracking application built with Nuxt 4 and N
 
 ### Development
 
-Start the development server on `http://localhost:3000`:
+Start the Tauri development app with hot-reload:
+```bash
+pnpm tauri:dev
+```
+
+Or run the web frontend only (without the native wrapper):
 ```bash
 pnpm dev
 ```
 
 ### Production
 
-Build the application for production:
+Build the desktop application for your platform:
 ```bash
-pnpm build
+pnpm tauri:build
 ```
 
-Locally preview the production build:
-```bash
-pnpm preview
-```
+The built application will be located in `src-tauri/target/release/bundle/`.
 
 ## Project Structure
 
@@ -61,6 +66,7 @@ pnpm preview
 - `app/composables/`: Shared logic for database access (`useDatabase`) and net worth calculations (`useNetWorth`).
 - `app/pages/`: Application routing and main views.
 - `app/types/`: TypeScript definitions and Zod schemas.
+- `src-tauri/`: Tauri configuration and Rust backend.
 
 ## License
 
