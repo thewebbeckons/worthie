@@ -10,17 +10,21 @@ export interface DbAccount {
     name: string
     bank: string
     categoryId: number
-    owner: string
-    ownerId?: number
+    owner: 'me' | 'spouse' | 'joint'
     type: 'asset' | 'liability'
     createdAt: string
 }
 
-// Owner table schema
-export interface DbOwner {
+// Owner type for accounts
+export type OwnerType = 'me' | 'spouse' | 'joint'
+
+// Profile table schema (single row for user settings)
+export interface DbProfile {
     id?: number
-    name: string
-    color?: string // Nuxt UI semantic color name (primary, secondary, error, info, success, warning, neutral)
+    userName?: string
+    spouseName?: string
+    userColor?: string   // Nuxt UI semantic color (primary, secondary, etc.)
+    spouseColor?: string // Nuxt UI semantic color
 }
 
 // Balance table schema

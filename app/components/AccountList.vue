@@ -33,6 +33,20 @@ const columns = [
 
 const sorting = ref([])
 
+// Filter state
+const searchInput = useTemplateRef('searchInput')
+const searchQuery = ref('')
+const categoryFilter = ref<string[]>([])
+const ownerFilter = ref<string[]>([])
+const bankFilter = ref<string[]>([])
+
+// Keyboard shortcut to focus search
+defineShortcuts({
+  '/': () => {
+    searchInput.value?.inputRef?.focus()
+  }
+})
+
 const items = computed(() => {
   return accounts.value.map(acc => ({
     id: acc.id,
@@ -44,6 +58,40 @@ const items = computed(() => {
     type: acc.type,
     balance: acc.latestBalance
   }))
+})
+
+// Unique filter options
+const categoryOptions = computed(() => {
+  const unique = [...new Set(items.value.map(i => i.category))].sort()
+  return unique.map(c => ({ label: c, value: c }))
+})
+
+const ownerOptions = computed(() => {
+  const unique = [...new Set(items.value.map(i => i.owner))].sort()
+  return unique.map(o => ({ label: o, value: o }))
+})
+
+const bankOptions = computed(() => {
+  const unique = [...new Set(items.value.map(i => i.bank))].sort()
+  return unique.map(b => ({ label: b, value: b }))
+})
+
+// Apply filters
+const filteredItems = computed(() => {
+  return items.value.filter(item => {
+    // Search filter (name or bank)
+    if (searchQuery.value) {
+      const query = searchQuery.value.toLowerCase()
+      const matchesName = item.name.toLowerCase().includes(query)
+      const matchesBank = item.bank.toLowerCase().includes(query)
+      if (!matchesName && !matchesBank) return false
+    }
+    // Dropdown filters
+    if (categoryFilter.value.length > 0 && !categoryFilter.value.includes(item.category)) return false
+    if (ownerFilter.value.length > 0 && !ownerFilter.value.includes(item.owner)) return false
+    if (bankFilter.value.length > 0 && !bankFilter.value.includes(item.bank)) return false
+    return true
+  })
 })
 
 // State for updating balance
@@ -104,7 +152,54 @@ const confirmDelete = async () => {
 </script>
 
 <template>
-  <UTable v-model:sorting="sorting" :columns="columns" :data="items">
+  <div class="space-y-4">
+    <!-- Filter Bar -->
+    <div class="flex flex-wrap items-center gap-4">
+      <UInput
+        ref="searchInput"
+        v-model="searchQuery"
+        placeholder="Search by name or bank..."
+        icon="i-lucide-search"
+        clear
+        class="w-64"
+      >
+        <template #trailing>
+          <UKbd value="/" />
+        </template>
+      </UInput>
+      <div class="flex-1" />
+      <div class="flex flex-wrap gap-4">
+      <USelectMenu
+        v-if="categoryOptions.length > 1"
+        v-model="categoryFilter"
+        :items="categoryOptions"
+        value-key="value"
+        placeholder="All Categories"
+        multiple
+        class="w-48"
+      />
+      <USelectMenu
+        v-if="ownerOptions.length > 1"
+        v-model="ownerFilter"
+        :items="ownerOptions"
+        value-key="value"
+        placeholder="All Owners"
+        multiple
+        class="w-48"
+      />
+      <USelectMenu
+        v-if="bankOptions.length > 1"
+        v-model="bankFilter"
+        :items="bankOptions"
+        value-key="value"
+        placeholder="All Banks"
+        multiple
+        class="w-48"
+      />
+      </div>
+    </div>
+
+    <UTable v-model:sorting="sorting" :columns="columns" :data="filteredItems">
       <template #owner-cell="{ row }">
         <div class="flex items-center gap-2">
           <OwnerBadge :name="row.original.owner" :color="row.original.ownerColor" size="xs" />
@@ -216,4 +311,5 @@ const confirmDelete = async () => {
         </div>
       </template>
     </UModal>
+  </div>
 </template>

@@ -11,7 +11,8 @@ import type {
     DbCategory,
     DbMonthlySnapshot,
     DbCategorySnapshot,
-    DbOwner
+    DbProfile,
+    OwnerType
 } from '~/types/db'
 import { isLiabilityCategory } from '~/types/db'
 
@@ -25,14 +26,51 @@ export interface AccountWithDetails extends DbAccount {
     latestBalance: number
 }
 
+/**
+ * Helper to get display name for owner type
+ */
+function getOwnerDisplayName(owner: OwnerType, profileData: DbProfile | null): string {
+    if (owner === 'me') {
+        return profileData?.userName || 'Me'
+    } else if (owner === 'spouse') {
+        return profileData?.spouseName || 'Spouse'
+    } else {
+        return 'Joint'
+    }
+}
+
+/**
+ * Helper to get color for owner type
+ */
+function getOwnerColorValue(owner: OwnerType, profileData: DbProfile | null): string {
+    if (owner === 'me') {
+        return profileData?.userColor || 'primary'
+    } else if (owner === 'spouse') {
+        return profileData?.spouseColor || 'secondary'
+    } else {
+        return 'info' // Joint accounts get a neutral color
+    }
+}
+
 // Reactive state
 const isReady = ref(false)
 const accounts = ref<AccountWithDetails[]>([])
 const categories = ref<DbCategory[]>([])
-const owners = ref<DbOwner[]>([])
+const profile = ref<DbProfile | null>(null)
 
 // Flag to track if we've initialized
 let initialized = false
+
+/**
+ * Load profile from database
+ */
+async function loadProfile(): Promise<DbProfile | null> {
+    if (import.meta.server) return null
+
+    const db = getDb()
+    const profiles = await db.profile.toArray()
+    return profiles[0] || null
+}
 
 /**
  * Load all accounts with their category names and latest balances
@@ -43,17 +81,12 @@ async function loadAccounts(): Promise<void> {
     const db = getDb()
     const allAccounts = await db.accounts.toArray()
     const allCategories = await db.categories.toArray()
-    const allOwners = await db.owners.toArray()
+    const currentProfile = await loadProfile()
 
     // Create lookup maps
     const categoryMap = new Map<number, string>()
     for (const cat of allCategories) {
         if (cat.id) categoryMap.set(cat.id, cat.name)
-    }
-
-    const ownerMap = new Map<number, { name: string, color?: string }>()
-    for (const owner of allOwners) {
-        if (owner.id) ownerMap.set(owner.id, { name: owner.name, color: owner.color })
     }
 
     // Load accounts with details
@@ -67,20 +100,18 @@ async function loadAccounts(): Promise<void> {
             .where('accountId').equals(account.id)
             .last()
 
-        const ownerInfo = account.ownerId ? ownerMap.get(account.ownerId) : null
-
         accountsWithDetails.push({
             ...account,
             categoryName: categoryMap.get(account.categoryId) || 'Unknown',
-            ownerName: ownerInfo ? ownerInfo.name : (account.owner || 'Unknown'),
-            ownerColor: ownerInfo?.color,
+            ownerName: getOwnerDisplayName(account.owner, currentProfile),
+            ownerColor: getOwnerColorValue(account.owner, currentProfile),
             latestBalance: latestBalance?.value || 0
         })
     }
 
     accounts.value = accountsWithDetails
     categories.value = allCategories
-    owners.value = allOwners
+    profile.value = currentProfile
 }
 
 /**
@@ -107,7 +138,7 @@ async function addAccount(data: {
     name: string
     bank: string
     category: string
-    owner: string
+    owner: OwnerType
     initialBalance: number
 }): Promise<number | undefined> {
     if (import.meta.server) return
@@ -115,7 +146,7 @@ async function addAccount(data: {
     const db = getDb()
 
     // First, create the account and balance in a transaction
-    const accountId = await db.transaction('rw', [db.accounts, db.balances, db.categories, db.owners], async () => {
+    const accountId = await db.transaction('rw', [db.accounts, db.balances, db.categories], async () => {
         // Find or create category
         let category = await db.categories.where('name').equals(data.category).first()
         let categoryId: number
@@ -124,16 +155,6 @@ async function addAccount(data: {
             categoryId = category.id
         } else {
             categoryId = await db.categories.add({ name: data.category }) as number
-        }
-
-        // Find or create owner
-        let owner = await db.owners.where('name').equals(data.owner).first()
-        let ownerId: number
-
-        if (owner && owner.id) {
-            ownerId = owner.id
-        } else {
-            ownerId = await db.owners.add({ name: data.owner }) as number
         }
 
         // Determine account type
@@ -145,7 +166,6 @@ async function addAccount(data: {
             bank: data.bank,
             categoryId,
             owner: data.owner,
-            ownerId,
             type: accountType,
             createdAt: new Date().toISOString()
         }) as number
@@ -209,13 +229,13 @@ async function updateAccount(accountId: number, data: {
     name: string
     bank: string
     category: string
-    owner: string
+    owner: OwnerType
 }): Promise<void> {
     if (import.meta.server) return
 
     const db = getDb()
 
-    await db.transaction('rw', [db.accounts, db.categories, db.owners], async () => {
+    await db.transaction('rw', [db.accounts, db.categories], async () => {
         // Find or create category
         let category = await db.categories.where('name').equals(data.category).first()
         let categoryId: number
@@ -224,16 +244,6 @@ async function updateAccount(accountId: number, data: {
             categoryId = category.id
         } else {
             categoryId = await db.categories.add({ name: data.category }) as number
-        }
-
-        // Find or create owner
-        let owner = await db.owners.where('name').equals(data.owner).first()
-        let ownerId: number
-
-        if (owner && owner.id) {
-            ownerId = owner.id
-        } else {
-            ownerId = await db.owners.add({ name: data.owner }) as number
         }
 
         // Determine account type based on category
@@ -245,7 +255,6 @@ async function updateAccount(accountId: number, data: {
             bank: data.bank,
             categoryId,
             owner: data.owner,
-            ownerId,
             type: accountType
         })
     })
@@ -307,41 +316,30 @@ async function findAccountById(id: number): Promise<AccountWithDetails | undefin
 }
 
 /**
- * Add a new owner
+ * Update or create profile
  */
-async function addOwner(name: string, color?: string): Promise<number | undefined> {
-    if (import.meta.server) return
-    const db = getDb()
-    const id = await db.owners.add({ name, color }) as number
-    await loadAccounts()
-    return id
-}
-
-/**
- * Update an existing owner
- */
-async function updateOwner(ownerId: number, name: string, color?: string): Promise<void> {
-    if (import.meta.server) return
-    const db = getDb()
-    await db.owners.update(ownerId, { name, color })
-    await loadAccounts()
-}
-
-/**
- * Delete an owner
- */
-async function deleteOwner(ownerId: number): Promise<void> {
+async function updateProfile(data: Partial<DbProfile>): Promise<void> {
     if (import.meta.server) return
     const db = getDb()
 
-    // Check if any account is using this ownerId
-    const count = await db.accounts.where('ownerId').equals(ownerId).count()
-    if (count > 0) {
-        throw new Error('Cannot delete owner referenced by accounts')
+    const existing = await db.profile.toArray()
+    if (existing.length > 0 && existing[0]?.id) {
+        // Update existing profile
+        await db.profile.update(existing[0].id, data)
+    } else {
+        // Create new profile
+        await db.profile.add(data as DbProfile)
     }
 
-    await db.owners.delete(ownerId)
+    // Reload to update owner display names
     await loadAccounts()
+}
+
+/**
+ * Get current profile
+ */
+async function getProfile(): Promise<DbProfile | null> {
+    return loadProfile()
 }
 
 /**
@@ -372,7 +370,7 @@ async function exportDatabase() {
 
     return await db.transaction('r', [
         db.accounts, db.balances, db.categories,
-        db.transactions, db.monthlySnapshots, db.categorySnapshots, db.owners
+        db.transactions, db.monthlySnapshots, db.categorySnapshots, db.profile
     ], async () => {
         const data = {
             accounts: await db.accounts.toArray(),
@@ -381,7 +379,7 @@ async function exportDatabase() {
             transactions: await db.transactions.toArray(),
             snapshots: await db.monthlySnapshots.toArray(),
             categorySnapshots: await db.categorySnapshots.toArray(),
-            owners: await db.owners.toArray()
+            profile: await db.profile.toArray()
         }
 
         return {
@@ -406,7 +404,7 @@ async function importDatabase(json: any) {
 
     await db.transaction('rw', [
         db.accounts, db.balances, db.categories,
-        db.transactions, db.monthlySnapshots, db.categorySnapshots, db.owners
+        db.transactions, db.monthlySnapshots, db.categorySnapshots, db.profile
     ], async () => {
         // Clear all tables
         await Promise.all([
@@ -416,7 +414,7 @@ async function importDatabase(json: any) {
             db.transactions.clear(),
             db.monthlySnapshots.clear(),
             db.categorySnapshots.clear(),
-            db.owners.clear()
+            db.profile.clear()
         ])
 
         // Add all data
@@ -427,7 +425,7 @@ async function importDatabase(json: any) {
             db.transactions.bulkAdd(json.data.transactions || []),
             db.monthlySnapshots.bulkAdd(json.data.snapshots || []),
             db.categorySnapshots.bulkAdd(json.data.categorySnapshots || []),
-            db.owners.bulkAdd(json.data.owners || [])
+            db.profile.bulkAdd(json.data.profile || [])
         ])
     })
 
@@ -460,7 +458,7 @@ export function useDatabase() {
         isReady: readonly(isReady),
         accounts: readonly(accounts),
         categories: readonly(categories),
-        owners: readonly(owners),
+        profile: readonly(profile),
 
         // Actions
         addAccount,
@@ -471,9 +469,8 @@ export function useDatabase() {
         getCategorySnapshots,
         findAccountByLegacyId,
         findAccountById,
-        addOwner,
-        updateOwner,
-        deleteOwner,
+        updateProfile,
+        getProfile,
         deleteAccount,
         exportDatabase,
         importDatabase,

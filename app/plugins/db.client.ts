@@ -12,7 +12,7 @@ import type {
     DbTransaction,
     DbMonthlySnapshot,
     DbCategorySnapshot,
-    DbOwner
+    DbProfile
 } from '~/types/db'
 
 // Database class with typed tables
@@ -23,7 +23,7 @@ class NetWorthDatabase extends Dexie {
     transactions!: EntityTable<DbTransaction, 'id'>
     monthlySnapshots!: EntityTable<DbMonthlySnapshot, 'month'>
     categorySnapshots!: EntityTable<DbCategorySnapshot, 'id'>
-    owners!: EntityTable<DbOwner, 'id'>
+    profile!: EntityTable<DbProfile, 'id'>
 
     constructor() {
         super('networth-db')
@@ -38,28 +38,16 @@ class NetWorthDatabase extends Dexie {
             categorySnapshots: '++id, [month+categoryId], categoryId'
         })
 
-        // Version 3 schema with owners table
-        this.version(3).stores({
-            accounts: '++id, legacyId, categoryId, type, bank, ownerId',
-            owners: '++id, name'
-        }).upgrade(async (trans) => {
-            // Migrate existing owner strings to owners table
-            const accounts = await trans.table('accounts').toArray()
-            const ownerNames = [...new Set(accounts.map(a => a.owner).filter(Boolean))]
-
-            const ownerMap = new Map<string, number>()
-            for (const name of ownerNames) {
-                const id = await trans.table('owners').add({ name }) as number
-                ownerMap.set(name, id)
-            }
-
-            for (const account of accounts) {
-                if (account.owner && ownerMap.has(account.owner)) {
-                    await trans.table('accounts').update(account.id, {
-                        ownerId: ownerMap.get(account.owner)
-                    })
-                }
-            }
+        // Version 4 schema - simplified owner model with profile
+        // This version resets the database for the new owner structure
+        this.version(4).stores({
+            accounts: '++id, legacyId, categoryId, type, bank, owner',
+            balances: '++id, accountId, date',
+            categories: '++id, name',
+            transactions: '++id, legacyId, accountId, date',
+            monthlySnapshots: 'month',
+            categorySnapshots: '++id, [month+categoryId], categoryId',
+            profile: '++id'
         })
     }
 }

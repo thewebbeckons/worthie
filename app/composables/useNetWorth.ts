@@ -6,6 +6,7 @@
  */
 import { useDatabase } from './useDatabase'
 import type { AccountWithDetails } from './useDatabase'
+import type { OwnerType } from '~/types/db'
 
 export const useNetWorth = () => {
     const {
@@ -79,7 +80,7 @@ export const useNetWorth = () => {
         name: string
         bank: string
         category: string
-        owner: string
+        owner: OwnerType
         initialBalance: number
     }): Promise<void> => {
         await dbAddAccount(account)
@@ -108,7 +109,7 @@ export const useNetWorth = () => {
         name: string
         bank: string
         category: string
-        owner: string
+        owner: OwnerType
     }): Promise<void> => {
         const numericId = parseInt(accountId, 10)
         if (isNaN(numericId)) {

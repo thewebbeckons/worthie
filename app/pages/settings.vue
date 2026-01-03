@@ -6,10 +6,8 @@ definePageMeta({
 })
 
 const { 
-  owners, 
-  addOwner, 
-  updateOwner,
-  deleteOwner, 
+  profile, 
+  updateProfile, 
   exportDatabase, 
   importDatabase, 
   resetDatabase,
@@ -18,66 +16,42 @@ const {
 
 const toast = useToast()
 
-// Color options for owners (Nuxt UI semantic colors)
+// Color options (Nuxt UI semantic colors)
 const colorOptions = ['primary', 'secondary', 'success', 'info', 'warning', 'error', 'neutral'] as const
-type OwnerColor = typeof colorOptions[number]
+type ColorOption = typeof colorOptions[number]
 
-// Owners Management
-const newOwnerName = ref('')
-const selectedColor = ref<OwnerColor>('primary')
+// Profile form state
+const userName = ref('')
+const userColor = ref<ColorOption>('primary')
+const spouseName = ref('')
+const spouseColor = ref<ColorOption>('secondary')
+const isEditingProfile = ref(false)
 
-// Edit Owner State
-const isEditingOwner = ref(false)
-const editingOwner = ref<{ id: number; name: string; color?: string } | null>(null)
-const editOwnerName = ref('')
-const editSelectedColor = ref<OwnerColor>('primary')
-const isAddingOwner = ref(false)
-
-const onAddOwner = async () => {
-  if (!newOwnerName.value) return
-  
-  try {
-    await addOwner(newOwnerName.value, selectedColor.value)
-    newOwnerName.value = ''
-    selectedColor.value = 'primary'
-    isAddingOwner.value = false
-    toast.add({ title: 'Owner added successfully', color: 'success' })
-  } catch (error) {
-    toast.add({ title: 'Failed to add owner', color: 'error', description: String(error) })
+// Initialize form from profile when loaded
+watch(profile, (newProfile) => {
+  if (newProfile) {
+    userName.value = newProfile.userName || ''
+    userColor.value = (newProfile.userColor as ColorOption) || 'primary'
+    spouseName.value = newProfile.spouseName || ''
+    spouseColor.value = (newProfile.spouseColor as ColorOption) || 'secondary'
   }
-}
+}, { immediate: true })
 
-const onEditOwner = (owner: { id?: number; name: string; color?: string }) => {
-  if (owner.id === undefined) return
-  editingOwner.value = { ...owner, id: owner.id }
-  editOwnerName.value = owner.name
-  editSelectedColor.value = (owner.color as OwnerColor) || 'primary'
-  isEditingOwner.value = true
-}
+const hasProfile = computed(() => !!profile.value?.userName)
+const hasSpouse = computed(() => !!profile.value?.spouseName)
 
-const onUpdateOwner = async () => {
-  if (!editingOwner.value || !editOwnerName.value) return
-  
+const onSaveProfile = async () => {
   try {
-    await updateOwner(editingOwner.value.id, editOwnerName.value, editSelectedColor.value)
-    isEditingOwner.value = false
-    editingOwner.value = null
-    editOwnerName.value = ''
-    editSelectedColor.value = 'primary'
-    toast.add({ title: 'Owner updated successfully', color: 'success' })
+    await updateProfile({
+      userName: userName.value || undefined,
+      userColor: userColor.value,
+      spouseName: spouseName.value || undefined,
+      spouseColor: spouseColor.value
+    })
+    isEditingProfile.value = false
+    toast.add({ title: 'Profile saved successfully', color: 'success' })
   } catch (error) {
-    toast.add({ title: 'Failed to update owner', color: 'error', description: String(error) })
-  }
-}
-
-const onDeleteOwner = async (id: number) => {
-  if (!confirm('Are you sure you want to delete this owner?')) return
-  
-  try {
-    await deleteOwner(id)
-    toast.add({ title: 'Owner deleted successfully', color: 'success' })
-  } catch (error) {
-    toast.add({ title: 'Cannot delete owner', color: 'error', description: String(error) })
+    toast.add({ title: 'Failed to save profile', color: 'error', description: String(error) })
   }
 }
 
@@ -137,7 +111,7 @@ const onResetApp = async () => {
   <UContainer class="py-10 max-w-4xl">
     <div class="mb-8">
       <h1 class="text-3xl font-bold">Settings</h1>
-      <p class="text-muted-foreground mt-2">Manage your data, owners, and application settings.</p>
+      <p class="text-muted-foreground mt-2">Manage your profile and application settings.</p>
     </div>
 
     <div v-if="!isReady" class="flex items-center justify-center py-20">
@@ -146,48 +120,119 @@ const onResetApp = async () => {
 
     <ClientOnly v-else>
       <div class="space-y-8">
-        <!-- Owners Section -->
+        <!-- Profile Section -->
         <UCard variant="soft">
           <template #header>
             <div class="flex items-center justify-between">
               <div>
-                <h2 class="text-xl font-semibold">Owners</h2>
-                <p class="text-sm text-muted-foreground">Manage users who own accounts.</p>
+                <h2 class="text-xl font-semibold">Profile</h2>
+                <p class="text-sm text-muted-foreground">Set your name and optionally add a spouse/partner.</p>
               </div>
               <UButton
-                icon="i-lucide-plus"
-                label="Add Owner"
-                @click="isAddingOwner = true"
+                v-if="!isEditingProfile"
+                icon="i-lucide-pencil"
+                :label="hasProfile ? 'Edit' : 'Set up'"
+                @click="isEditingProfile = true"
               />
             </div>
           </template>
 
-          <div class="divide-y divide-gray-200 dark:divide-gray-800">
-            <div v-for="owner in owners" :key="owner.id" class="flex items-center gap-4 py-4 px-4 first:pt-0 last:pb-0">
+          <div v-if="!isEditingProfile" class="space-y-4">
+            <!-- Show current profile -->
+            <div class="flex items-center gap-4">
               <OwnerBadge
-                :name="owner.name"
-                :color="owner.color"
+                :name="profile?.userName || 'Me'"
+                :color="profile?.userColor || 'primary'"
                 size="md"
               />
               <div class="flex-1">
-                <p class="font-medium text-sm">{{ owner.name }}</p>
-              </div>
-              <div class="flex items-center gap-1">
-                <UButton
-                  icon="i-lucide-pencil"
-                  variant="ghost"
-                  @click="onEditOwner(owner)"
-                />
-                <UButton
-                  icon="i-lucide-trash-2"
-                  color="error"
-                  variant="ghost"
-                  @click="onDeleteOwner(owner.id!)"
-                />
+                <p class="font-medium">{{ profile?.userName || 'Your Name' }}</p>
+                <p class="text-sm text-muted-foreground">{{ hasProfile ? 'Owner' : 'Not configured yet' }}</p>
               </div>
             </div>
-            <div v-if="owners.length === 0" class="py-10 text-center">
-              <p class="text-sm text-muted-foreground italic">No owners found. Add one to get started.</p>
+            
+            <div v-if="hasSpouse" class="flex items-center gap-4">
+              <OwnerBadge
+                :name="profile?.spouseName || 'Spouse'"
+                :color="profile?.spouseColor || 'secondary'"
+                size="md"
+              />
+              <div class="flex-1">
+                <p class="font-medium">{{ profile?.spouseName }}</p>
+                <p class="text-sm text-muted-foreground">Spouse/Partner</p>
+              </div>
+            </div>
+
+            <div v-if="!hasProfile" class="py-4 text-center">
+              <p class="text-sm text-muted-foreground italic">Add your name to personalize account ownership.</p>
+            </div>
+          </div>
+
+          <!-- Edit form -->
+          <div v-else class="space-y-6">
+            <!-- Your Profile -->
+            <div class="space-y-4">
+              <h3 class="font-medium">Your Profile</h3>
+              
+              <UFormField label="Your Name">
+                <UInput v-model="userName" placeholder="Enter your name" />
+              </UFormField>
+              
+              <UFormField label="Your Color">
+                <div class="flex items-center gap-4">
+                  <OwnerBadge :name="userName || 'You'" :color="userColor" size="lg" />
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      v-for="color in colorOptions"
+                      :key="color"
+                      type="button"
+                      class="w-8 h-8 rounded-full transition-all ring-offset-2 ring-offset-background"
+                      :class="[
+                        `bg-${color}`,
+                        userColor === color ? 'ring-2 ring-current scale-110' : 'hover:scale-105'
+                      ]"
+                      @click="userColor = color"
+                    />
+                  </div>
+                </div>
+              </UFormField>
+            </div>
+
+            <UDivider />
+
+            <!-- Spouse/Partner -->
+            <div class="space-y-4">
+              <h3 class="font-medium">Spouse/Partner (Optional)</h3>
+              <p class="text-sm text-muted-foreground">Add a spouse or partner to enable joint and individual account ownership.</p>
+              
+              <UFormField label="Spouse/Partner Name">
+                <UInput v-model="spouseName" placeholder="Enter spouse/partner name" />
+              </UFormField>
+              
+              <UFormField v-if="spouseName" label="Spouse/Partner Color">
+                <div class="flex items-center gap-4">
+                  <OwnerBadge :name="spouseName" :color="spouseColor" size="lg" />
+                  <div class="flex flex-wrap gap-2">
+                    <button
+                      v-for="color in colorOptions"
+                      :key="color"
+                      type="button"
+                      class="w-8 h-8 rounded-full transition-all ring-offset-2 ring-offset-background"
+                      :class="[
+                        `bg-${color}`,
+                        spouseColor === color ? 'ring-2 ring-current scale-110' : 'hover:scale-105'
+                      ]"
+                      @click="spouseColor = color"
+                    />
+                  </div>
+                </div>
+              </UFormField>
+            </div>
+
+            <!-- Action buttons -->
+            <div class="flex justify-end gap-2 pt-4">
+              <UButton label="Cancel" variant="ghost" @click="isEditingProfile = false" />
+              <UButton label="Save Profile" @click="onSaveProfile" />
             </div>
           </div>
         </UCard>
@@ -247,78 +292,6 @@ const onResetApp = async () => {
           </template>
         </UPageCard>
       </div>
-
-      <!-- Add Owner Modal -->
-      <UModal v-model:open="isAddingOwner" title="Add New Owner">
-        <template #body>
-          <div class="space-y-4 py-2">
-            <UFormField label="Name" required>
-              <UInput v-model="newOwnerName" placeholder="Enter owner name" />
-            </UFormField>
-            
-            <UFormField label="Color">
-              <div class="flex items-center gap-4">
-                <OwnerBadge :name="newOwnerName || 'Preview'" :color="selectedColor" size="lg" />
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    v-for="color in colorOptions"
-                    :key="color"
-                    type="button"
-                    class="w-8 h-8 rounded-full transition-all ring-offset-2 ring-offset-background"
-                    :class="[
-                      `bg-${color}`,
-                      selectedColor === color ? 'ring-2 ring-current scale-110' : 'hover:scale-105'
-                    ]"
-                    @click="selectedColor = color"
-                  />
-                </div>
-              </div>
-            </UFormField>
-          </div>
-        </template>
-        <template #footer>
-          <div class="flex justify-end gap-2">
-            <UButton label="Cancel" variant="ghost" @click="isAddingOwner = false" />
-            <UButton label="Create Owner" :disabled="!newOwnerName" @click="onAddOwner" />
-          </div>
-        </template>
-      </UModal>
-
-      <!-- Edit Owner Modal -->
-      <UModal v-model:open="isEditingOwner" title="Edit Owner">
-        <template #body>
-          <div class="space-y-4 py-2">
-            <UFormField label="Name" required>
-              <UInput v-model="editOwnerName" placeholder="Enter owner name" />
-            </UFormField>
-            
-            <UFormField label="Color">
-              <div class="flex items-center gap-4">
-                <OwnerBadge :name="editOwnerName || 'Preview'" :color="editSelectedColor" size="lg" />
-                <div class="flex flex-wrap gap-2">
-                  <button
-                    v-for="color in colorOptions"
-                    :key="color"
-                    type="button"
-                    class="w-8 h-8 rounded-full transition-all ring-offset-2 ring-offset-background"
-                    :class="[
-                      `bg-${color}`,
-                      editSelectedColor === color ? 'ring-2 ring-current scale-110' : 'hover:scale-105'
-                    ]"
-                    @click="editSelectedColor = color"
-                  />
-                </div>
-              </div>
-            </UFormField>
-          </div>
-        </template>
-        <template #footer>
-          <div class="flex justify-end gap-2">
-            <UButton label="Cancel" variant="ghost" @click="isEditingOwner = false" />
-            <UButton label="Save Changes" :disabled="!editOwnerName" @click="onUpdateOwner" />
-          </div>
-        </template>
-      </UModal>
 
       <!-- Reset Confirmation Modal -->
       <UModal v-model:open="isResetModalOpen" title="Reset Application?">

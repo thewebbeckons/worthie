@@ -1,6 +1,4 @@
 <script setup lang="ts">
-const { accounts } = useNetWorth()
-
 const isAddAccountOpen = ref(false)
 </script>
 
@@ -11,7 +9,10 @@ const isAddAccountOpen = ref(false)
         <h1 class="text-3xl font-bold">Accounts</h1>
         <p class="text-gray-500">Manage your assets and liabilities</p>
       </div>
-      <UButton label="Add Account" @click="isAddAccountOpen = true" icon="i-heroicons-plus" />
+      <div class="flex gap-2">
+        <ExportButton />
+        <UButton label="Add Account" @click="isAddAccountOpen = true" icon="i-heroicons-plus" />
+      </div>
     </div>
 
     <UCard variant="soft">

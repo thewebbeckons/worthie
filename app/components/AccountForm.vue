@@ -2,6 +2,7 @@
 import { z } from 'zod'
 import type { FormSubmitEvent } from '#ui/types'
 import { useDatabase } from '~/composables/useDatabase'
+import type { OwnerType } from '~/types/db'
 
 const props = defineProps<{
   onSuccess?: () => void
@@ -13,17 +14,29 @@ const { addAccount } = useNetWorth()
 
 const categories = ['TFSA', 'RRSP', 'Cash', 'Loan', 'Mortgage', 'Credit Card', 'Investment']
 
-const { owners } = useDatabase()
-const ownerOptions = computed(() => owners.value.map(o => o.name))
-const hasOwners = computed(() => owners.value.length > 0)
+const { profile } = useDatabase()
 
-const schema = computed(() => z.object({
+// Owner options based on profile configuration
+const ownerOptions = computed(() => {
+  const options: { value: OwnerType; label: string }[] = [
+    { value: 'me', label: profile.value?.userName || 'Me' }
+  ]
+  
+  if (profile.value?.spouseName) {
+    options.push({ value: 'spouse', label: profile.value.spouseName })
+    options.push({ value: 'joint', label: 'Joint' })
+  }
+  
+  return options
+})
+
+const schema = z.object({
   name: z.string().min(1, 'Name is required'),
   bank: z.string().min(1, 'Bank is required'),
   category: z.string().min(1, 'Category is required'),
-  owner: hasOwners.value ? z.string().min(1, 'Owner is required') : z.string().optional(),
+  owner: z.enum(['me', 'spouse', 'joint'] as const),
   initialBalance: z.number()
-}))
+})
 
 type Schema = z.output<typeof schema>
 
@@ -31,24 +44,17 @@ const state = reactive({
   name: '',
   bank: '',
   category: categories[0],
-  owner: '',
+  owner: 'me' as OwnerType,
   initialBalance: 0
 })
 
-// Set default owner when owners are loaded
-watch(owners, (newOwners) => {
-  if (newOwners.length > 0 && !state.owner) {
-    state.owner = newOwners[0]?.name ?? ''
-  }
-}, { immediate: true })
-
 async function onSubmit(event: FormSubmitEvent<Schema>) {
-  await addAccount(event.data as { name: string; bank: string; category: string; owner: string; initialBalance: number })
+  await addAccount(event.data)
   // Reset form or close modal
   state.name = ''
   state.bank = ''
   state.initialBalance = 0
-  state.owner = ''
+  state.owner = 'me'
   
   if (props.onSuccess) {
     props.onSuccess()
@@ -71,8 +77,13 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
       <USelect v-model="state.category" :items="categories" />
     </UFormField>
 
-    <UFormField v-if="hasOwners" label="Owner" name="owner">
-      <USelect v-model="state.owner" :items="ownerOptions" />
+    <UFormField label="Owner" name="owner">
+      <USelect 
+        v-model="state.owner" 
+        :items="ownerOptions"
+        value-key="value"
+        label-key="label"
+      />
     </UFormField>
 
     <UFormField label="Initial Balance" name="initialBalance">
