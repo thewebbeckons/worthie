@@ -2,8 +2,6 @@
 
 A modern, privacy-focused net worth tracking web application built with Nuxt 4 and Nuxt UI. All data is stored locally in your browser using IndexedDB.
 
-![Worthie Dashboard](./worthie_dashboard.png)
-
 ## Features
 
 - **📊 Visual Insights**: Track your net worth over time with dynamic area charts.
