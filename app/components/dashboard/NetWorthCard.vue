@@ -105,7 +105,7 @@ const yFormatter = (tick: number) => {
           :x-formatter="xFormatter"
           :y-formatter="yFormatter"
           :show-tooltip="true"
-          :height="160"
+          :height="180"
           :show-x-axis="true"
           :show-y-axis="false"
           :show-grid-lines="false"
