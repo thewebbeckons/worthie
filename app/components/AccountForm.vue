@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { z } from 'zod'
 import type { FormSubmitEvent } from '#ui/types'
-import { useDatabase } from '~/composables/useDatabase'
 import type { OwnerType } from '~/types/db'
 
 const props = defineProps<{
@@ -11,25 +10,7 @@ const props = defineProps<{
 const emit = defineEmits(['close'])
 
 const { addAccount } = useNetWorth()
-
-const { profile, categories: dbCategories } = useDatabase()
-
-// Convert categories to select items (category names)
-const categoryOptions = computed(() => dbCategories.value.map(c => c.name))
-
-// Owner options based on profile configuration
-const ownerOptions = computed(() => {
-  const options: { value: OwnerType; label: string }[] = [
-    { value: 'me', label: profile.value?.userName || 'Me' }
-  ]
-  
-  if (profile.value?.spouseName) {
-    options.push({ value: 'spouse', label: profile.value.spouseName })
-    options.push({ value: 'joint', label: 'Joint' })
-  }
-  
-  return options
-})
+const { categoryOptions, ownerOptions } = useAccountFormOptions()
 
 const schema = z.object({
   name: z.string().min(1, 'Name is required'),

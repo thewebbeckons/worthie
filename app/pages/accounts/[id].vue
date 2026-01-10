@@ -51,7 +51,7 @@ const handleBalanceUpdated = async () => {
     <div v-if="account" class="space-y-6">
       <UButton variant="link" icon="i-heroicons-arrow-left" to="/accounts" class="p-0 mb-2">Back to Accounts</UButton>
       <div class="flex justify-between items-start gap-4">
-        <div class="space-y-2 flex-1">          
+        <div class="space-y-2 flex-1">
           <h1 class="text-3xl font-bold">{{ account.name }}</h1>
           <div class="flex gap-2 text-gray-500">
             <UBadge color="neutral">{{ account.category }}</UBadge>
@@ -61,18 +61,7 @@ const handleBalanceUpdated = async () => {
             </UBadge>
           </div>
         </div>
-        
-        <!-- Notes Card -->
-        <UCard v-if="account.notes" variant="subtle" class="max-w-sm">
-          <template #header>
-            <div class="flex items-center gap-2 text-sm font-medium text-muted">
-              <UIcon name="i-lucide-sticky-note" class="w-4 h-4" />
-              Notes
-            </div>
-          </template>
-          <div class="text-sm prose prose-sm dark:prose-invert max-w-none" v-html="account.notes" />
-        </UCard>
-        
+
         <div class="flex gap-2 shrink-0">
           <UButton label="Update Balance" @click="isUpdateBalanceModalOpen = true" icon="i-lucide-circle-dollar-sign" variant="soft" />
           <UButton label="Edit Account" @click="isEditModalOpen = true" icon="i-lucide-square-pen" />
@@ -87,26 +76,40 @@ const handleBalanceUpdated = async () => {
         <div v-if="isLoading" class="flex justify-center py-8">
           <UIcon name="i-lucide-loader-2" class="animate-spin text-2xl text-gray-500" />
         </div>
-        <BalanceHistoryChart 
-          v-else 
-          :balance-history="balanceHistory" 
+        <BalanceHistoryChart
+          v-else
+          :balance-history="balanceHistory"
           :account-type="account?.type"
         />
       </UCard>
 
-      <!-- Balance History Table -->
-      <UCard variant="outline" class="shadow-sm">
-        <template #header>
-          <div class="text-lg font-bold">Balance History</div>
-        </template>
-        <div v-if="isLoading" class="flex justify-center py-8">
-          <UIcon name="i-lucide-loader-2" class="animate-spin text-2xl text-gray-500" />
-        </div>
-        <div v-else-if="historyRows.length === 0" class="text-center py-8 text-gray-500">
-          No balance history yet
-        </div>
-        <UTable v-else :columns="historyColumns" :data="historyRows" />
-      </UCard>
+      <!-- Balance History Table and Notes Side by Side -->
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <!-- Balance History Table -->
+        <UCard variant="outline" class="shadow-sm lg:col-span-2">
+          <template #header>
+            <div class="text-lg font-bold">Balance History</div>
+          </template>
+          <div v-if="isLoading" class="flex justify-center py-8">
+            <UIcon name="i-lucide-loader-2" class="animate-spin text-2xl text-gray-500" />
+          </div>
+          <div v-else-if="historyRows.length === 0" class="text-center py-8 text-gray-500">
+            No balance history yet
+          </div>
+          <UTable v-else :columns="historyColumns" :data="historyRows" />
+        </UCard>
+
+        <!-- Notes Card -->
+        <UCard v-if="account.notes" variant="subtle" class="lg:col-span-1">
+          <template #header>
+            <div class="flex items-center gap-2 text-sm font-medium text-muted">
+              <UIcon name="i-lucide-sticky-note" class="w-4 h-4" />
+              Notes
+            </div>
+          </template>
+          <div class="text-sm prose prose-sm dark:prose-invert max-w-none" v-html="account.notes" />
+        </UCard>
+      </div>
       
       <!-- Edit Account Modal -->
       <UModal v-model:open="isEditModalOpen">

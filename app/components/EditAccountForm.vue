@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { z } from 'zod'
 import type { FormSubmitEvent } from '#ui/types'
-import { useDatabase } from '~/composables/useDatabase'
 import type { OwnerType } from '~/types/db'
 
 const props = defineProps<{
@@ -20,31 +19,7 @@ const props = defineProps<{
 const emit = defineEmits(['close', 'saved'])
 
 const { updateAccount } = useNetWorth()
-
-const categories = ['TFSA', 'RRSP', 'Cash', 'Loan', 'Mortgage', 'Credit Card', 'Investment']
-
-const { profile } = useDatabase()
-
-// Owner options based on profile configuration
-const ownerOptions = computed(() => {
-  const options: { value: OwnerType; label: string }[] = [
-    { value: 'me', label: profile.value?.userName || 'Me' }
-  ]
-  
-  if (profile.value?.spouseName) {
-    options.push({ value: 'spouse', label: profile.value.spouseName })
-    options.push({ value: 'joint', label: 'Joint' })
-  }
-  
-  return options
-})
-
-// Map owner display name back to OwnerType
-function getOwnerType(ownerName: string): OwnerType {
-  if (ownerName === 'Joint') return 'joint'
-  if (profile.value?.spouseName && ownerName === profile.value.spouseName) return 'spouse'
-  return 'me'
-}
+const { categoryOptions, ownerOptions, getOwnerType } = useAccountFormOptions()
 
 const schema = z.object({
   name: z.string().min(1, 'Name is required'),
@@ -96,7 +71,7 @@ async function onSubmit(event: FormSubmitEvent<Schema>) {
     </UFormField>
 
     <UFormField label="Category" name="category">
-      <USelect v-model="state.category" :items="categories" />
+      <USelect v-model="state.category" :items="categoryOptions" />
     </UFormField>
 
     <UFormField label="Owner" name="owner">
