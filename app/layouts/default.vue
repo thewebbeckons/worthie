@@ -29,11 +29,26 @@ const navItems = computed<NavigationMenuItem[]>(() => [
       :max-size="18"
     >
       <template #header="{ collapsed }">
-        <div class="flex items-center flex-1 py-3" :class="collapsed ? 'justify-center' : 'justify-start'">
+        <div
+          class="flex items-center flex-1 py-3"
+          :class="collapsed ? 'justify-center' : 'justify-start'"
+        >
           <UTooltip text="Worths">
-            <img src="/logo.png" alt="Worthie Logo" class="rounded-lg" :class="collapsed ? 'h-(--reka-dropdown-menu-trigger-width) w-(--reka-dropdown-menu-trigger-width)' : 'h-8 w-8'" />
+            <img
+              src="/logo.png"
+              alt="Worthie Logo"
+              class="rounded-lg"
+              :class="
+                collapsed
+                  ? 'h-(--reka-dropdown-menu-trigger-width) w-(--reka-dropdown-menu-trigger-width)'
+                  : 'h-8 w-8'
+              "
+            >
           </UTooltip>
-          <span v-if="!collapsed" class="ml-2 font-bold text-lg">Worths</span>
+          <span
+            v-if="!collapsed"
+            class="ml-2 font-bold text-lg"
+          >Worths</span>
         </div>
       </template>
 
@@ -61,7 +76,7 @@ const navItems = computed<NavigationMenuItem[]>(() => [
           >
             <span v-if="!collapsed">Settings</span>
           </UButton>
-      </UTooltip>
+        </UTooltip>
       </template>
     </UDashboardSidebar>
 

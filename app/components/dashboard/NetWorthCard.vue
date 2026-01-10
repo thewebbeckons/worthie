@@ -22,8 +22,8 @@ const formatCurrency = (value: number) => {
 }
 
 const formatCompactCurrency = (value: number) => {
-  return new Intl.NumberFormat('en-US', { 
-    style: 'currency', 
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
     currency: 'USD',
     notation: 'compact',
     compactDisplay: 'short'
@@ -39,13 +39,13 @@ const parseLocalDate = (dateStr: string): Date => {
 // Transform snapshots for the chart
 const chartData = computed(() => {
   let snapshots = monthlySnapshots.value
-  
+
   // Filter by start date if provided
   if (props.startDate) {
     const startMonth = `${props.startDate.getFullYear()}-${String(props.startDate.getMonth() + 1).padStart(2, '0')}`
     snapshots = snapshots.filter(s => s.month >= startMonth)
   }
-  
+
   return snapshots.map((s, index) => ({
     x: index,
     assets: s.assetsTotal,
@@ -101,19 +101,15 @@ const tooltipTemplate = (d: typeof chartData.value[0]) => {
         <div class="text-3xl font-bold text-neutral-900 dark:text-white">
           {{ formatCurrency(currentNetWorth) }}
         </div>
-        
+
         <!-- Growth Indicator (Below Net Worth) -->
-        <div 
-          v-if="periodGrowth.growth !== 0" 
-          class="flex items-center gap-1.5 mt-1 text-sm font-medium"
-          :class="periodGrowth.growth >= 0 ? 'text-green-500' : 'text-red-500'"
-        >
-          <UIcon 
-            :name="periodGrowth.growth >= 0 ? 'i-heroicons-arrow-trending-up' : 'i-heroicons-arrow-trending-down'" 
-            class="w-4 h-4" 
-          />
+        <div v-if="periodGrowth.growth !== 0" class="flex items-center gap-1.5 mt-1 text-sm font-medium"
+          :class="periodGrowth.growth >= 0 ? 'text-green-500' : 'text-red-500'">
+          <UIcon :name="periodGrowth.growth >= 0 ? 'i-heroicons-arrow-trending-up' : 'i-heroicons-arrow-trending-down'"
+            class="w-4 h-4" />
           <span>{{ periodGrowth.growth >= 0 ? '+' : '' }}{{ formatCurrency(periodGrowth.growth) }}</span>
-          <span class="opacity-70">({{ periodGrowth.growth >= 0 ? '+' : '' }}{{ periodGrowth.percentage.toFixed(1) }}%)</span>
+          <span class="opacity-70">({{ periodGrowth.growth >= 0 ? '+' : '' }}{{ periodGrowth.percentage.toFixed(1)
+            }}%)</span>
         </div>
       </div>
 
@@ -121,45 +117,17 @@ const tooltipTemplate = (d: typeof chartData.value[0]) => {
       <div v-if="chartData.length > 1" class="flex-1 mb-4 h-[180px]">
         <VisXYContainer :data="chartData" :height="180" :margin="{ top: 5, right: 10, bottom: 25, left: 10 }">
           <!-- Assets Area (behind) -->
-          <VisArea 
-            :x="x" 
-            :y="yAssets" 
-            :color="assetsColor"
-            :opacity="0.4"
-            :curve-type="CurveType.MonotoneX"
-          />
+          <VisArea :x="x" :y="yAssets" :color="assetsColor" :opacity="0.4" :curve-type="CurveType.MonotoneX" />
           <!-- Liabilities Area (front) -->
-          <VisArea 
-            :x="x" 
-            :y="yLiabilities" 
-            :color="liabilitiesColor"
-            :opacity="0.9"
-            :curve-type="CurveType.MonotoneX"
-          />
+          <VisArea :x="x" :y="yLiabilities" :color="liabilitiesColor" :opacity="0.9"
+            :curve-type="CurveType.MonotoneX" />
           <!-- Assets Line -->
-          <VisLine 
-            :x="x" 
-            :y="yAssets" 
-            :color="assetsColor"
-            :line-width="2"
-            :curve-type="CurveType.MonotoneX"
-          />
+          <VisLine :x="x" :y="yAssets" :color="assetsColor" :line-width="2" :curve-type="CurveType.MonotoneX" />
           <!-- Liabilities Line -->
-          <VisLine 
-            :x="x" 
-            :y="yLiabilities" 
-            :color="liabilitiesColor"
-            :line-width="2"
-            :curve-type="CurveType.MonotoneX"
-          />
-          <VisAxis 
-            type="x" 
-            :tick-format="xTickFormat"
-            :num-ticks="6"
-            :grid-line="false"
-            :tick-line="false"
-            :domain-line="false"
-          />
+          <VisLine :x="x" :y="yLiabilities" :color="liabilitiesColor" :line-width="2"
+            :curve-type="CurveType.MonotoneX" />
+          <VisAxis type="x" :tick-format="xTickFormat" :num-ticks="6" :grid-line="false" :tick-line="false"
+            :domain-line="false" />
           <VisTooltip />
           <VisCrosshair :template="tooltipTemplate" />
         </VisXYContainer>
@@ -174,7 +142,8 @@ const tooltipTemplate = (d: typeof chartData.value[0]) => {
         <div class="flex-1">
           <div class="flex items-center gap-1.5 mb-0.5">
             <span class="w-2 h-2 rounded-full bg-green-500" />
-            <span class="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Assets</span>
+            <span
+              class="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Assets</span>
           </div>
           <div class="text-lg font-semibold text-green-500">
             {{ formatCurrency(totalAssets) }}
@@ -185,7 +154,8 @@ const tooltipTemplate = (d: typeof chartData.value[0]) => {
         <div class="flex-1">
           <div class="flex items-center gap-1.5 mb-0.5">
             <span class="w-2 h-2 rounded-full bg-red-400" />
-            <span class="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Liabilities</span>
+            <span
+              class="text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400">Liabilities</span>
           </div>
           <div class="text-lg font-semibold text-red-400">
             {{ formatCurrency(totalLiabilities) }}
