@@ -24,7 +24,7 @@ pnpm typecheck        # Run TypeScript type checking
 The app uses a two-tier composable architecture for data access:
 
 1. **`app/plugins/db.client.ts`** - Dexie database singleton and low-level operations
-   - Defines the `NetWorthDatabase` class with schema versions
+   - Defines the `NetWorthDatabase` class with versioned schema migrations
    - Exports `getDb()` for accessing the database singleton
    - Exports `generateAllSnapshots()` for recalculating monthly aggregates
    - All database operations are client-only (guarded with `import.meta.server`)
@@ -49,6 +49,8 @@ Defined in `app/types/db.ts`. Key tables:
 - `monthlySnapshots` - Pre-calculated monthly aggregates (keyed by `yyyy-mm`)
 - `profile` - User/spouse names and colors
 
+Schema migrations are handled via Dexie's versioning system in `db.client.ts`. Each version upgrade can include data migrations.
+
 ### Component Structure
 
 - `app/components/dashboard/` - Dashboard cards (NetWorthCard, AssetsListCard, LiabilitiesListCard)
@@ -62,3 +64,5 @@ Defined in `app/types/db.ts`. Key tables:
 - Snapshots are regenerated after any data mutation via `generateAllSnapshots()`
 - Forms use Zod for validation
 - UI components use Nuxt UI v4 (semantic color tokens like `primary`, `secondary`)
+- Charts use Unovis (`@unovis/vue`) - see `NetWorthChart.vue` and `BalanceHistoryChart.vue` for patterns
+- Icons use Heroicons and Lucide via `@iconify-json/*` packages
