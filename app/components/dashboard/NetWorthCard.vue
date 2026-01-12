@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { VisXYContainer, VisAxis, VisCrosshair, VisLine, VisGroupedBar, VisTooltip, VisScatter } from '@unovis/vue'
 import { CurveType } from '@unovis/ts'
+import { useStorage } from '@vueuse/core'
 import { formatCurrency, formatCompactCurrency, parseLocalDate } from '~/utils/format'
 
 interface PeriodGrowth {
