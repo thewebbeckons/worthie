@@ -1,8 +1,5 @@
 <script setup lang="ts">
-const { currentNetWorth, getGrowthForPeriod, totalAssets, totalLiabilities } = useNetWorth()
-
-// Get period growth for all time
-const periodGrowth = computed(() => getGrowthForPeriod(null))
+const { currentNetWorth, totalAssets, totalLiabilities } = useNetWorth()
 </script>
 
 <template>
@@ -22,7 +19,6 @@ const periodGrowth = computed(() => getGrowthForPeriod(null))
             :current-net-worth="currentNetWorth"
             :total-assets="totalAssets"
             :total-liabilities="totalLiabilities"
-            :period-growth="periodGrowth"
           />
 
           <DashboardAssetCategoriesCard />

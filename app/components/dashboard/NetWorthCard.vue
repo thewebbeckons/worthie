@@ -13,7 +13,6 @@ defineProps<{
   currentNetWorth: number
   totalAssets: number
   totalLiabilities: number
-  periodGrowth: PeriodGrowth
 }>()
 
 const { monthlySnapshots } = useNetWorth()
@@ -70,6 +69,18 @@ const chartData = computed(() => {
       formattedDate: new Intl.DateTimeFormat('en-US', { month: 'short' }).format(parseLocalDate(`${month}-01`))
     }
   })
+})
+
+const periodGrowth = computed<PeriodGrowth>(() => {
+  const data = chartData.value
+  if (data.length < 2) return { growth: 0, percentage: 0 }
+
+  const startValue = data[0]?.netWorth ?? 0
+  const endValue = data[data.length - 1]?.netWorth ?? 0
+  const growth = endValue - startValue
+  const percentage = startValue !== 0 ? (growth / Math.abs(startValue)) * 100 : 0
+
+  return { growth, percentage }
 })
 // Get unique month labels for x-axis ticks
 const uniqueMonthIndices = computed(() => {
